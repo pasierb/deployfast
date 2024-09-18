@@ -35,13 +35,12 @@ func main() {
 			defer sshClient.Close()
 
 			// Run provision script
-			output, err := sshClient.RunProvisionScript("templates/provision.sh")
+			err = sshClient.RunProvisionScript("templates/provision.sh")
 			if err != nil {
 				log.Fatalf("Failed to run provision script: %v", err)
 			}
 
-			fmt.Println("Provision script output:")
-			fmt.Println(output)
+			fmt.Println("Provision script executed successfully")
 		},
 	}
 

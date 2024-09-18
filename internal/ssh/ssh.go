@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -104,32 +105,55 @@ func (s *SSHClient) TransferFile(localPath, remotePath string) error {
 }
 
 // RunProvisionScript transfers and executes the provision.sh script
-func (s *SSHClient) RunProvisionScript(localScriptPath string) (string, error) {
+func (s *SSHClient) RunProvisionScript(localScriptPath string) error {
 	remoteScriptPath := "/tmp/provision.sh"
 
 	// Transfer the script
 	err := s.TransferFile(localScriptPath, remoteScriptPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to transfer provision script: %w", err)
+		return fmt.Errorf("failed to transfer provision script: %w", err)
 	}
 
 	// Make the script executable
 	_, err = s.RunCommand(fmt.Sprintf("chmod +x %s", remoteScriptPath))
 	if err != nil {
-		return "", fmt.Errorf("failed to make script executable: %w", err)
+		return fmt.Errorf("failed to make script executable: %w", err)
 	}
 
-	// Try to run the script with sudo
-	output, err := s.RunCommand(fmt.Sprintf("sudo bash %s", remoteScriptPath))
+	// Create a session
+	session, err := s.client.NewSession()
 	if err != nil {
-		fmt.Printf("Failed to run script with sudo: %v\n", err)
-		fmt.Println("Attempting to run without sudo...")
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+	defer session.Close()
 
-		// If sudo fails, try running without sudo
-		output, err = s.RunCommand(fmt.Sprintf("bash %s", remoteScriptPath))
-		if err != nil {
-			return "", fmt.Errorf("failed to run provision script: %w", err)
-		}
+	// Set up pipe for remote command's stdout
+	stdout, err := session.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to set up stdout pipe: %w", err)
+	}
+
+	// Set up pipe for remote command's stderr
+	stderr, err := session.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to set up stderr pipe: %w", err)
+	}
+
+	// Start the remote command
+	cmd := fmt.Sprintf("sudo bash %s || bash %s", remoteScriptPath, remoteScriptPath)
+	err = session.Start(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to start provision script: %w", err)
+	}
+
+	// Stream output
+	go streamOutput(stdout, os.Stdout)
+	go streamOutput(stderr, os.Stderr)
+
+	// Wait for the command to finish
+	err = session.Wait()
+	if err != nil {
+		return fmt.Errorf("provision script failed: %w", err)
 	}
 
 	// Clean up the remote script
@@ -138,5 +162,13 @@ func (s *SSHClient) RunProvisionScript(localScriptPath string) (string, error) {
 		fmt.Printf("Warning: Failed to remove remote script: %v\n", cleanupErr)
 	}
 
-	return output, nil
+	return nil
+}
+
+// streamOutput reads from src and writes to dst line by line
+func streamOutput(src io.Reader, dst io.Writer) {
+	scanner := bufio.NewScanner(src)
+	for scanner.Scan() {
+		fmt.Fprintln(dst, scanner.Text())
+	}
 }
