@@ -1,0 +1,8 @@
+{
+  "ssh": {
+    "host": "localhost",
+    "user": "root",
+    "port": 2222,
+    "keyFile": "/path/to/private/key"
+  }
+}
