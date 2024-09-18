@@ -23,9 +23,9 @@ func main() {
 		Long:  `A Fast and Flexible CLI tool for SSH operations built with Go.`,
 	}
 
-	var sshCmd = &cobra.Command{
-		Use:   "ssh",
-		Short: "Perform SSH operations",
+	var provisionCmd = &cobra.Command{
+		Use:   "provision",
+		Short: "Provision the remote server",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Create SSH client
 			sshClient, err := ssh.NewSSHClient(cfg.SSH)
@@ -46,7 +46,7 @@ func main() {
 		},
 	}
 
-	rootCmd.AddCommand(sshCmd)
+	rootCmd.AddCommand(provisionCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
