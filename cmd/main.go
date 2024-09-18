@@ -35,7 +35,9 @@ func main() {
 			defer sshClient.Close()
 
 			// Run provision script
-			err = sshClient.RunProvisionScript("templates/provision.sh")
+			localScriptPath := "templates/provision.sh"
+			remoteScriptPath := "/tmp/provision.sh"
+			err = sshClient.RunRemoteScript(localScriptPath, remoteScriptPath)
 			if err != nil {
 				log.Fatalf("Failed to run provision script: %v", err)
 			}

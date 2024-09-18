@@ -104,14 +104,12 @@ func (s *SSHClient) TransferFile(localPath, remotePath string) error {
 	return nil
 }
 
-// RunProvisionScript transfers and executes the provision.sh script
-func (s *SSHClient) RunProvisionScript(localScriptPath string) error {
-	remoteScriptPath := "/tmp/provision.sh"
-
+// RunRemoteScript transfers and executes a script on the remote server
+func (s *SSHClient) RunRemoteScript(localScriptPath, remoteScriptPath string) error {
 	// Transfer the script
 	err := s.TransferFile(localScriptPath, remoteScriptPath)
 	if err != nil {
-		return fmt.Errorf("failed to transfer provision script: %w", err)
+		return fmt.Errorf("failed to transfer script: %w", err)
 	}
 
 	// Make the script executable

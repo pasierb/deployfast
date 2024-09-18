@@ -1,5 +1,0 @@
-[ssh]
-host = "example.com"
-user = "username"
-port = 22
-keyFile = "/path/to/private/key"
