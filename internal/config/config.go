@@ -1,13 +1,17 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"text/template"
 )
 
 type Config struct {
-	SSH SSHConfig `json:"ssh"`
+	SSH        SSHConfig `json:"ssh"`
+	Repository string    `json:"repository"`
+	AppName    string    `json:"appName"`
 }
 
 type SSHConfig struct {
@@ -52,4 +56,18 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func (c *Config) RenderTemplate(content string) (string, error) {
+	tmpl, err := template.New("script").Parse(content)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, c); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

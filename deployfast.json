@@ -4,5 +4,7 @@
     "user": "root",
     "port": 2222,
     "keyFile": "/path/to/private/key"
-  }
+  },
+  "repository": "https://github.com/pasierb/deployfast-landing.git",
+  "appName": "my-awesome-app"
 }

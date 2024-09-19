@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/pkg/sftp"
@@ -105,9 +106,34 @@ func (s *SSHClient) TransferFile(localPath, remotePath string) error {
 }
 
 // RunRemoteScript transfers and executes a script on the remote server
-func (s *SSHClient) RunRemoteScript(localScriptPath, remoteScriptPath string) error {
-	// Transfer the script
-	err := s.TransferFile(localScriptPath, remoteScriptPath)
+func (s *SSHClient) RunRemoteScript(localScriptPath, remoteScriptPath string, cfg *config.Config) error {
+	// Read the local script
+	content, err := ioutil.ReadFile(localScriptPath)
+	if err != nil {
+		return fmt.Errorf("failed to read local script: %w", err)
+	}
+
+	// Render the template
+	renderedContent, err := cfg.RenderTemplate(string(content))
+	if err != nil {
+		return fmt.Errorf("failed to render script template: %w", err)
+	}
+
+	// Create a temporary file for the rendered script
+	tempFile, err := ioutil.TempFile("", "rendered_script_*.sh")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Write the rendered content to the temporary file
+	if _, err := tempFile.Write([]byte(renderedContent)); err != nil {
+		return fmt.Errorf("failed to write to temporary file: %w", err)
+	}
+	tempFile.Close()
+
+	// Transfer the rendered script
+	err = s.TransferFile(tempFile.Name(), remoteScriptPath)
 	if err != nil {
 		return fmt.Errorf("failed to transfer script: %w", err)
 	}
